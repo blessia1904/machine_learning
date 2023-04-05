@@ -1,0 +1,169 @@
+---
+title: "ML_Assignment1"
+author: "Huixin Blessia Li"
+date: "2023-01-10"
+output: html_document
+---
+
+# Question 1&2
+```{r = T1}
+library("dplyr")
+library("ggplot2")
+
+# Creating a random 10000*1001 matrix from a normal distribution
+set.seed(9305)
+DataVal1 <- as.data.frame(matrix(rnorm(10000*1001,0,1),10000,1001))
+
+# Renaming rows and columns
+rownames(DataVal1) <- c(1:10000)
+colnames(DataVal1) <- c("Y",c(1:1000))
+
+```
+
+# Question 3&4
+```{r}
+# Regression Summary
+RegAnalysis <- lm(Y~.-1,data=DataVal1)
+RegOutput <- summary(RegAnalysis)
+# Intercept is not needed because regression lines go through x_bar and y_bar, and in this case they are both 0; thus, all lines go through the origin and no intercept is needed. 
+
+# Segregate p -Values for each coefficient and histogram plot
+T1 <- RegOutput$coefficients
+P_Output <- as.numeric(sort.default(T1[,4]))
+hist(P_Output,main = "Distribution of P-values for beta co-efficients",xlab = "P_Value",ylab = "Count")
+# The histogram looks like uniform distribution.
+
+# Uniform distribution test (Null hypothesis: Distribution is uniform)
+ks.test(P_Output,"punif")
+# p-value is 0.1999, so we fail to reject the null and can conclude that it's uniform distributed.
+```
+
+# Question 5
+```{r}
+# How many “significant” variables do you expect to find knowing how the data was generated? 
+# I expect to find 0 “significant” variables because it's a regression of white noise, so there supposed to have none.  
+# How many “significant” variables does the regression yield if alpha = 0.01? 
+# 0.01*1000=10, I expect to find 10 “significant” variables if alpha = 0.01.
+
+P_Output <- as.data.frame(P_Output)
+sum(P_Output<0.01)
+
+# The output shows there are actually 13 significant variables. Though it's close to 10, it tells us that large amount of variables could lead to some false positives (predicted meaningful but actually not meaningful) using normal alpha. Thus, it's reasonable to use a smaller alpha when having massive variables in the model.
+
+```
+
+# Question 6
+```{r}
+# BH Procedure ###
+P_Output$Order <- c(1:1000)
+#View(P_Output)
+P_Output <- dplyr::mutate(P_Output,BH_Index = (.1*Order)/1000)
+
+# Segregating the rows with p-value less than p* and their total count
+PVal2 <- subset(P_Output, P_Output<=BH_Index)
+nrow(PVal2)
+
+# How many “true” discoveries do you estimate? 
+# 0. None of the p-value can be the cutoff.
+```
+
+# Question 7&8
+```{r}
+# Read Data##
+Read_Data1 <- read.csv("/Users/HuixinLi/Desktop/452\ ML/HW\ 1/autos.csv")
+summary(Read_Data1)
+
+Read_Data1$make <- as.factor(Read_Data1$make)
+Read_Data1$fuel_type <- as.factor(Read_Data1$fuel_type)
+Read_Data1$aspiration <- as.factor(Read_Data1$aspiration)
+Read_Data1$body_style <- as.factor(Read_Data1$body_style)
+Read_Data1$drive_wheels <- as.factor(Read_Data1$drive_wheels)
+Read_Data1$engine_location <- as.factor(Read_Data1$engine_location)
+Read_Data1$engine_type <- as.factor(Read_Data1$engine_type)
+Read_Data1$fuel_system <- as.factor(Read_Data1$fuel_system)
+Read_Data1$num_of_doors <- as.factor(Read_Data1$num_of_doors)
+
+# EDA ####
+Brand_Dis <- Read_Data1 %>%
+  group_by(make) %>%
+  summarise(count = n()) %>%
+  mutate(rel.freq = paste0(round(100 * count/sum(count), 0), "%")) %>%
+  arrange(desc(count))
+
+## Barplot using ggplot2 - showing Frequency
+ggplot(data=Brand_Dis, aes(x=Brand_Dis$make, y=count)) +
+  geom_bar(stat="identity") + ggtitle("Distribution of Cars ") + 
+  xlab("No of Cars") +
+  geom_text(aes(label=count), vjust=1.6, color="white",las = 2)
+
+boxplot(price~make,data=Read_Data1,main = "Brand wise Price",las =2)
+boxplot(city_mpg~make,data=Read_Data1,main = "city wise Price",las =2)
+boxplot(price~fuel_type,data=Read_Data1,main = "fuel_type wise Price",las =2)
+boxplot(price~aspiration,data=Read_Data1,main = "aspiration wise Price",las =2)
+boxplot(Read_Data1$price)
+
+plot(density(Read_Data1$price))
+
+
+# The model
+AutocsvReg <- lm(price~.,data = Read_Data1)
+AutocsvRegsummary <- summary(AutocsvReg)
+
+# Included all variables because each variable has a potential to impact the price of a car. We found out the R2 and Adjusted R2 value to be very high ~95%. This signifies that all these columns are able to explain around 95% of the variation in price. We also see about 23 significant variables based on .05 significance level. For example, brands like bmw, chevrolet, dodge, mitsubishi, peugot, plymouth are significant at 5%. Factors like wheel_base, length, curb_weight, engine_size also matter.
+```
+
+# Question 9
+```{r}
+# There are 53 variables in the model, so there might be some false positives. There are about 30 variables not significant at 5% significance level, and the remaining ~20 variables could have 1 or more false positives because 20*0.05=1. Thus, false discoveries could be an issue.
+```
+
+# Question 10
+```{r}
+T2 <- AutocsvRegsummary$coefficients
+P_Output2 <- as.numeric(sort.default(T2[,4]))
+
+P_Output2 <- as.data.frame(P_Output2)
+P_Output2$Order <- c(1:53)
+N <- nrow(P_Output2)
+P_Output2 <- dplyr::mutate(P_Output2,BH_Index = (.1*Order)/N)
+#View(P_Output2)
+
+# Segregating the rows with p-value less than p* and their total count
+PVal2_output2 <- subset(P_Output2, P_Output2<=BH_Index)
+nrow(PVal2_output2)
+
+# The number of true discoveries is estimated to be 19.
+P_Output2[19,1]
+# the cut-off p-value (p*) is 0.02956354
+
+# Plot the cutoff line together with the significant and insignificant p-values
+P_Output2 <- AutocsvRegsummary$coefficient[,4]
+hist(P_Output2, breaks = 20)
+abline(h =19, col = 4)
+
+fdr <- function(P_Output2, q, plotit=FALSE){
+  alpha = c()
+  P_Output2 <- P_Output2[!is.na(P_Output2)]
+  N <- length(P_Output2)
+  
+  k <- rank(P_Output2, ties.method="min")
+  alpha <- append(alpha, max(P_Output2[ P_Output2 <= (q*k/N) ]))
+  alpha <- append(alpha, length(P_Output2[ P_Output2 <= (q*k/N) ]))
+  
+  if(plotit){
+    sig <- factor(P_Output2 <= alpha)
+    o <- order(P_Output2)
+    plot(P_Output2[o], log="xy", col=c("grey60","red")[sig[o]], pch=20, 
+      ylab="p-values", xlab="tests ordered by p-value", main = paste('FDR =',q))
+    lines(1:N, q*(1:N) / N)
+  }
+  
+  return(alpha)
+}
+
+Result <- fdr(P_Output2,.1,TRUE)
+
+fdrq10 <- fdr(P_Output2, q=0.1)
+fdrq10
+```
+
