@@ -1,0 +1,150 @@
+---
+title: "452HW6"
+author: "Huixin Blessia Li"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Q1: PCA (Principal Component Analysis) is an unsupervised ML method that is often used to reduce dimensionality of large data sets.
+## 1.1 Please explain how PCA can be used to reduce the number of variables.
+PCA can be used to identify patterns in highly complex datasets and what variables in the data are the most important. The goal is to find a smaller set of variables that can explain the majority of the variability in the original data. To do that, we usually first standardize/scale the data, and then apply PCA to the standardized date. PCA finds the best fitting line by maximizing the sum of the squared distances from the projected points to the origin after repeatedly rotating the line. Ultimately, it ends up with the line has the largest sum of squared distances, which is called PC1, spanning the direction of the most variation. PC2 is the line that perpendicular to PC1 and span the direction of the second most variation. These principal components are linear combinations of the original variables that capture the maximum amount of variation in the data. Once the principal components are obtained, each observation in the original data can be transformed into the new set of variables by multiplying the observation vector by the matrix of principal components.  
+Thus, we can then use PCA to reduce the number of variables, for model selection. The number of principal components to retain is chosen based on how much of the original variation is explained by each component. (For example for our last homework, we retained components with at least 75% of the variance.) The first few principal components usually can account for high percentages of variation and thus will be retained. By retaining only the first few principal components, we effectively reduce the dimensionality of the data while still preserving most of the important information. 
+
+## 1.2 Please highlight limitations of PCA.
+1. PCA reduces interpretability of the resulting reduced variable set. The interpretation of principal components may not always be straightforward, especially when there are many variables involved. While each principal component captures a certain amount of variation in the data, it may not always be clear which variables or combinations of variables are most responsible for that variation.  
+2. PCA is sensitive to outliers in the data, which can affect the results and interpretation of the principal components.   
+3. PCA is sensitive to the scale of the variables, which means that the results can change depending on how the data is standardized.  
+4. PCA is based on linear relationships between variables, which means that it may not capture complex, non-linear relationships that exist in the data.  
+
+
+# Q2:Trees are supervised algorithms that can be used for both regression and classification tasks. For the following trees, please explain how it is grown (i.e., how to select the variables to split on at each node)
+## 2.1 Classification Tree  
+First we need to select a feature as the root of the tree, and it starts with calculating gini impurity for each feature and selecting the one with the lowest value. To do this,   
+1. for each potential split feature, calculate the Gini impurity of the resulting split. The Gini impurity is defined as follows: Gini impurity = 1 - (p1^2 + p2^2 + ... + pk^2) where p1, p2...pk are the proportions of each class in the split.  
+(More specifically, for each feature contains categorical data, compute gini impurity for the left leaf and the right leaf, then compute weighted average of gini impurity for the leaves to get the total gini impurity. 
+For each feature contains numeric data, such as age, first sort data, then compute averages for all adjacent values and corresponding total gini impurity, then choose the lowest impurity.)  
+2. Select the feature that yields the lowest total Gini impurity (weighted average Gini impurity of the two resulting subsets) as the splitting feature for the current node.  
+3. Split the data into two subsets based on the selected feature, and create two child nodes for the current node.  
+Once the root has been determined, the data is split into two child nodes/subsets based on the value of that feature (e.g. True on the left and False on the right). To further split the nodes, repeat steps 1-3 for each child node until no reason to continue splitting a node or a stopping criterion is met. The stopping criterion can be a maximum depth of the tree, a minimum number of samples required to split a node, or a minimum impurity decrease. Lastly, assign output values to make a classification for each leaf.  
+
+## 2.2 Regression Tree  
+First we need to select a feature as the root of the tree, to do this,  
+1. for each feature, calculate sum of squared errors (SSE) for each potential splitting point and pick the point that gives the minimal SSE, which becomes a candidate for root node. (The SSE is defined as the sum of the squared differences between the actual values of the target feature and the predicted values, which are the means of the subgroups)  
+2. Then compare SSEs among all candidates, pick the feature/candidate with the lowest SSE, which becomes the the root.  
+The root splits into two child nodes. To further split the child nodes, repeat steps 1-2 for each child node in order to find the optimal split and divide it into two homogeneous subsets (now root candidate becomes next splitting candidate). Now child nodes become parent nodes, and we repeat above steps to each subsets to grow the tree until no reason to continue splitting a node or a stopping criterion is met. The stopping criterion can be a minimum number of observations in a leaf, a maximum depth of the tree, or minimum deviance improvement thresholds. Lastly, assign a predicted value to each leaf, which is usually the mean of the target feature within the subgroup.
+
+# Q3: Please explain how a tree is pruned?
+A tree can be pruned by pre-pruning and post-pruning. And one of the common ways of post-pruning is cost complexity pruning, which is removing split rules from the bottom up approach. It involves building the decision tree to its maximum depth or until it splits all the nodes, and then pruning it back by systematically removing branches that contribute least to the overall reduction in impurity or deviance of the model. Each prune step produces a candidate tree model, and we can compare their out-of-sample prediction performance by using cross-validation to choose the optimal tree model that has the best performance (least deviance) on new, unseen data.  
+To be specific, the first step is to calculate the sum of the squared residuals for each tree starting from the original full-sized tree to each sub-tree. Then calculate tree scores for each candidate tree by using the formula "tree score = SSR+ alpha*T," where alpha is a parameter determined by cross validation and T is terminal nodes in the tree. The tree complexity penalty (alpha multiply T) compensates for the difference in the number of leaves note. With K-fold cross-validation, the value for alpha on average generates the lowest SSR with the testing data is the final value for alpha. Lastly, pick the candidate tree that corresponds to the value for the final alpha, and it will be the final pruned tree. This approach can help to avoid overfitting and to produce a simpler and more interpretable decision tree model.   
+
+# Q4: Please explain why a Random Forest usually outperforms regular regression methods (such as linear regression, logistic regression, and lasso regression).
+1. Random Forest uses bootstrapping as part of its algorithm. Using a bootstrap sample and considering only a subset of variables at each step results in a wide variety of trees. The variety is what makes random forests more effective than individual decision trees. Specifically, each decision tree in the Random Forest is trained on a bootstrap sample of the training data, meaning that it is trained on a random sample of the data with replacement. Since the model is an average of many decision trees, each of which is trained on a different subset of the data, Random Forest reduces the variance of the predictions and is less susceptible to overfitting to noise in the data compared to other regression methods as the individual trees are less likely to be influenced by the noise in any particular subset. Other regression methods, such as linear regression, may fit a single model to the entire dataset and be more likely to be overfitting to noise in the data.   
+2. Random Forest is able to capture complex non-linear relationships between input variables and the target variable, whereas other regression methods, such as logistic regression and lasso regression, assume the relationship is linear. This means that Random Forest can capture more complex decision boundaries that may be missed by logistic and lasso regressions.  
+3. Random Forest is more robust to outliers and noisy data compared to other Regression methods, as it is trained on a random subset of the data with replacement.  
+4. Random Forest can handle missing data more effectively than logistic regression. In logistic regression, missing data must be imputed or the entire observation is discarded.  
+5. Random Forest is able to provide information about the importance of each input variable in the model, whereas logistic regression does not.  
+
+# Q5: Use the Trasaction.csv dataset to create payment default classifier ('payment_default ' column) and explain your output using:  
+Pre-processing and look into the dataset:  
+```{r}
+library(randomForest)
+library(MASS)
+library(caret)
+library(rpart)
+library(rpart.plot)
+
+transaction <- read.csv("/Users/HuixinLi/Desktop/452\ ML/HW\ 6/Transaction.csv")
+# View data structure
+str(transaction)
+# View summary statistics
+summary(transaction)
+# Check NA values
+colSums(is.na(transaction))
+# Remove first column as it's unnecessary
+transaction <- transaction[,-c(1)]
+# Convert payment_default to factor
+transaction$payment_default <- as.factor(transaction$payment_default)
+table(transaction$payment_default)
+```
+
+## 5.1 Classification Tree (CART)
+```{r}
+# Split data into training and testing
+set.seed(12)
+trainIndex <- createDataPartition(transaction$payment_default, p = 0.7, list = FALSE)
+train <- transaction[trainIndex, ]
+test <- transaction[-trainIndex, ]
+
+# Build CART model
+tran_tree <- rpart(payment_default ~., data = train, cp=0.002, method = "class")
+print(tran_tree)
+summary(tran_tree)
+printcp(tran_tree)
+# Plot CART model
+rpart.plot(tran_tree)
+
+# Predict payment default for test data
+tree_pred <- predict(tran_tree, newdata = test, type = "class")
+
+# Evaluate the model
+confusionMatrix(tree_pred, test$payment_default)$overall["Accuracy"]
+confusionMatrix(tree_pred, test$payment_default)$byClass["F1"]
+
+################ Prune CART model
+pruned_tree <- prune(tran_tree, cp = 0.01)
+summary(pruned_tree)
+printcp(pruned_tree)
+# Plot pruned CART model
+rpart.plot(pruned_tree)
+
+# Predict payment default for test data using pruned model
+pruned_pred <- predict(pruned_tree, newdata = test, type = "class")
+
+# Evaluate the pruned model
+confusionMatrix(pruned_pred, test$payment_default)$overall["Accuracy"]
+confusionMatrix(pruned_pred, test$payment_default)$byClass["F1"]
+
+```
+
+I'm going to first explain output based on the pruned CART tree. Accuracy is 0.818202, and F1 score is 0.8915551. According to the summary output and the plot, the tree depth is pruned to 1. "PAY_0" is the only variables actually used in tree construction; "PAY_0" is the root node, and the root node error is 0.22123, meaning that about 22% of the observations are misclassified by the initial tree. The plot is saying that if "PAY_0" is less than 2, the prediction would be class 0 (which means they will not default on their payment), and if "PAY_0" is greater than 2, the prediction would be class 1 (which means they will default on their payment).  
+
+Specifically, the left leaf node has the probability of class 0 is 15,686 / 18,793 = 0.84, and the probability of class 1 is 3,107 / 18,793 = 0.17. "89%" indicates the proportion of observations that belong to this particular node relative to the total number of observations in the tree. In this case, left leaf has 18,793 observations out of 21,001 total observations, so the proportion is about 89.5%. The right leaf node has the probability of class 0 as 0.30, and the probability of class 1 as 0.70.  
+
+For original CART tree, accuracy is 0.8195355, and F1 score is 0.8915019 According to the summary output and the plot, it appears that variables "PAY_0" has the highest importance as it's the root node, and the root node error is also 0.22123. "PAY_2", "PAY_5", "PAY_3", "PAY_4", "PAY_6"'s importance are followed by "PAY_0". Overall, the tree was constructed using 6 predictor variables: BILL_AMT1, BILL_AMT4, PAY_0, PAY_2, PAY_6, PAY_AMT5.
+
+Based on the results from original CART tree and pruned CART tree, pruned CART model did not improve its performance significantly. Since the difference in performance between the original and pruned models is very small, it's possible that the original model was not overfitting the training data significantly, and therefore pruning did not have a big impact on performance.  
+
+## 5.2 Random Forest
+```{r}
+# Fit the forest
+tran_forest <- randomForest(payment_default ~ ., data = train, importance=TRUE)
+print(tran_forest)
+summary(tran_forest)
+
+# Plot the forest
+plot(tran_forest)
+
+# Visualize variable importance plot
+varImpPlot(tran_forest)
+# Get variable importance table
+importance_df <- as.data.frame(importance(tran_forest))
+(importance_df <- importance_df[order(-importance_df$MeanDecreaseAccuracy),])
+
+# Evaluate the performance of the model on the testing data
+forest_pred <- predict(tran_forest, newdata=test)
+confusionMatrix(forest_pred, test$payment_default)$overall["Accuracy"]
+confusionMatrix(forest_pred, test$payment_default)$byClass["F1"]
+
+```
+
+Random forest has accuracy of 0.8196466 and F1 score of 0.8912854. The number of trees is 500 in the model and number of variable tried at each split are 4. Classification error in predicting payment default as class 0 is 5.25%, as class 1 is 63%. The plot tells that error rate is stabilized with an increase in the number of trees. It seems like when trees=50, the error levels off and becomes stable, so maybe ~50 trees is also a good option to random forest. The OOB estimate of the error rate for the random forest model is 18.11%, meaning the proportion of OOB sample that were incorrectly classified is 18.11%.  
+
+Based on the importance table and the Mean Decrease Accuracy column, the most important variables for predicting payment default appear to be "PAY_0", followed by "BILL_AMT3", "PAY_AMT4", "BILL_AMT2", "PAY_AMT6", "PAY_AMT5". Comparing the accuracy and F1 score of the CART tree and Random Forest models, we can see that the performance is quite similar. This suggests that both models are able to classify the payment default with similar accuracy and precision. However, the Random Forest model may be more robust and less prone to overfitting than the CART tree due to its use of bootstrapping.
+
+
+
+
+
+
+
+
